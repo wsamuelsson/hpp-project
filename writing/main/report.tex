@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{polynom}
+\usepackage{fancyhdr}
+\usepackage{svg}
+\usepackage{systeme}
+\usepackage{delarray}
+\usepackage{gensymb}
+\usepackage{dirtytalk}
+\usepackage{numprint}
+\bibliographystyle{ieeetr}
+\usepackage{colortbl}
+\usepackage{tikz -timing}
+\usepackage{tikz}
+\usepackage{empheq}
+\usepackage{listings}
+\usepackage{bm}
+\usepackage[english]{babel}
+
+
+
+\title{Block LU factorization}
+\author{William Samuelsson}
+\date{\today}
+
+\begin{document}
+\begin{titlepage}
+    \centering
+    \vfill
+    \includegraphics[width=8cm]{UU_logo.pdf} % also works with logo.pdf
+    \vfill
+        {\bfseries\Large
+        \makeatletter
+        \@title\
+        \vskip2cm
+        \@date\
+        \vskip2cm
+        
+        \@author\
+        \makeatother
+    }    
+    \vfill
+    \vfill
+\end{titlepage}
+
+\section{Introduction}
+\input{../introduction/introduction.tex}
+\section{Problem description}
+\input{../problem_description/problem_description.tex}
+\section{Solution method}
+\input{../solution_method/solution_method.tex}
+\section{Experiments}
+\input{../experiments/experiments.tex}
+\section{Conclusions}
+\input{../conclusions/conclusions.tex}
+\bibliography{../references/references.bib}
+
+\end{document}

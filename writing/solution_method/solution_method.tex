@@ -1,0 +1,6 @@
+The solution takes of with how to perform the blocking of the matrix $A$. In
+standard linear algebra algorithms (BLAS for example) column major storage of
+matrices is assumed. This is usually fine, but since the problem is of block
+type this will lead to the blocks themselves not being sequentially stored in
+memory which might cause cache misses and false sharing when employing the block
+algorithm. 
