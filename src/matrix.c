@@ -39,46 +39,52 @@ int main(int argc,  char**argv){
     
     symmetric_random_matrix(&A[0], N);
     memcpy(A_org, A, N*N*sizeof(double));
-
+    //print_matrix(&A[0], N);
+    //printf("\n");
     
     double t0 = omp_get_wtime();
     LU_factor_parallel(&A[0], N, nThreads);
     
     printf("LU (parallel) for N=%d took %lf seconds\n", N, omp_get_wtime() - t0);
-   // print_matrix(&A[0], N);
+    //print_matrix(&A[0], N);
+    //printf("\n");
     get_L_U(&A[0], &L[0], &U[0], N);
-
     
     memset(&A[0], 0.0, N*N*sizeof(floatType));
     ftgemm(&L[0], &U[0], &A[0], N);
     
-    
 
     floatType absSum = 0.0;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N*N; i++)
     {
         absSum += abs(A[i] - A_org[i]);
     }
     printf("Abssum=%.12lf\n\n", absSum);
     
+    #pragma omp barrier
+    memset(&L[0], 0.0, N*N*sizeof(floatType));
+    memset(&U[0], 0.0, N*N*sizeof(floatType));
+    memcpy(A, A_org, N*N*sizeof(double));
+    
     t0 = omp_get_wtime();
     LU_factor(&A[0], N);
     printf("LU (Serial) for N=%d took %lf seconds\n", N, omp_get_wtime() - t0);
-   // print_matrix(&A[0], N);
+    
     get_L_U(&A[0], &L[0], &U[0], N);
-
     
     memset(&A[0], 0.0, N*N*sizeof(floatType));
     ftgemm(&L[0], &U[0], &A[0], N);
     
     
-
+    
     absSum = 0.0;
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N*N; i++)
     {
         absSum += abs(A[i] - A_org[i]);
     }
     printf("Abssum=%.12lf\n", absSum);
+    
+    
     
     free(A);
     free(U);
@@ -137,9 +143,12 @@ void LU_factor(floatType *A,  int N){
                 A[i*N+k] *= Akk_inv; 
             }
             
-            
+            //printf("k=%d\n", k);
             for(i=k+1;i<N;i++){
+                
+                //printf("i=%d\n", i);
                 for(j=k+1;j<N;j++){
+                    //printf("i*N + j=%d\n", i*N+j);
                     A[i*N + j] -= A[i*N + k]*A[k*N + j];
                 }
             }
@@ -190,39 +199,41 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
     floatType Akk_inv;
     omp_lock_t *locks = (omp_lock_t *)malloc(N * sizeof(omp_lock_t)); //One lock per column
     
+    floatType ** cols = (floatType **)malloc(N*sizeof(floatType *));
     //Init locks
     for(k=0;k<N;k++){
         omp_init_lock(&locks[k]);
+        cols[k] = malloc(sizeof(floatType)*N);
     }
     
-    int col ,threadID, start;
-    #pragma omp parallel num_threads(nThreads) private(col, k, start, threadID, Akk_inv, i)
+    int col ,threadID, start, k_temp;
+    #pragma omp parallel num_threads(nThreads) private(col, k, start, threadID, Akk_inv, k_temp, j, i)
     {   
         
-        floatType *column = (floatType *)malloc(N * sizeof(floatType));
+        
         threadID = omp_get_thread_num();
         
-        for(col=threadID;col<nThreads;col+=nThreads){
-            for (i = 0; i < N; i++) {
-                column[i] = A[i * N + col]; // Copy the column from A to column (Touches mem)
-            }
+        
+        for(col=threadID;col<N;col+=nThreads){
             omp_set_lock(&locks[col]);
         }
         
         #pragma omp barrier
-        
+
         if(threadID == 0){ //Master thread computes
-            
-            Akk_inv = 1.0/column[0];
+            //printf("Normalizing column=0\n");
+            Akk_inv = 1.0/A[0];
             for(i=1;i<N;i++){
                 
-                column[i] *= Akk_inv;
+                A[i*N+k] *= Akk_inv;
             }
             omp_unset_lock(&locks[0]);
             
         }
         
+        
         for(k=0;k<N;k++){
+            
             omp_set_lock(&locks[k]);
             omp_unset_lock(&locks[k]);
             
@@ -233,25 +244,35 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
             
             
             for(col=start+threadID;col<N;col+=nThreads){
-               
+                
                 for(j=k+1;j<N;j++){
-                    A[col*N+j] -= column[k]*column[j];
+                    //printf("a_%d%d -= a_%d%d*a_%d%d\n", col, j, col, k, k, j);
+                    //printf("%lf -= %lf*%lf\n", A[col*N + j], A[col*N+k], A[N*k+j]);
+                    A[j*N + col] -= A[j*N+k]*A[N*k+col];
                 }
                 
+
+                
                 if(col == k+1 && col < N){
+                    k_temp = k+1;
+                    Akk_inv = 1.0/A[k_temp*N + k_temp];
+                    //printf("Akk_inv=%lf\n", Akk_inv);
+                    //print_matrix(&A[0], N);
+                    //printf("Normalizing column=%d\n", k+1);
                     
-                    Akk_inv = 1.0/A[(k+1)*N + (k+1)];
-                    for(i=k+2;i<N;i++){
-                        column[i] *= Akk_inv;
-                    omp_unset_lock(&locks[k+1]);
-                   
+                    for(i=k_temp+1;i<N;i++){
+                        A[i*N + k_temp] *= Akk_inv;
+                    
                     }
+                    //print_matrix(&A[0], N);
+                    
+                    omp_unset_lock(&locks[k_temp]);
                 }
             }
         }
-        #pragma omp barrier
-        free(column);
+       
     }
+    #pragma omp barrier
     //Destroy locks
     for(k=0;k<N;k++){
         omp_destroy_lock(&locks[k]);
