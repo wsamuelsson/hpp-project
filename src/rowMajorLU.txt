@@ -1,0 +1,29 @@
+--------------------------------------------------------------------------------
+I1 cache:         32768 B, 64 B, 8-way associative
+D1 cache:         32768 B, 64 B, 8-way associative
+LL cache:         6291456 B, 64 B, 12-way associative
+Command:          ./matrix 1000
+Data file:        cachegrind.out.18907
+Events recorded:  Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Events shown:     Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Event sort order: Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Thresholds:       0.1 100 100 100 100 100 100 100 100
+Include dirs:     
+User annotated:   
+Auto-annotation:  off
+
+--------------------------------------------------------------------------------
+Ir            I1mr  ILmr  Dr            D1mr          DLmr        Dw         D1mw      DLmw    
+--------------------------------------------------------------------------------
+6,592,322,923 1,592 1,567 2,434,461,011 1,169,459,461 137,158,415 99,060,175 2,251,943 625,356  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir            I1mr ILmr Dr            D1mr          DLmr        Dw         D1mw      DLmw     file:function
+--------------------------------------------------------------------------------
+6,011,007,021    3    3 2,000,000,004 1,125,999,003 125,127,002  1,000,003 1,000,001 125,002  ???:ftgemm
+  527,422,097   12   12   423,617,442    42,795,848  11,814,373 84,281,753         0       0  ???:LU_factor
+   15,951,420    3    3     4,004,000             3           2  1,501,500         0       0  /build/glibc-wuryBv/glibc-2.31/stdlib/random_r.c:random_r
+   10,510,500    2    2     4,004,000             0           0  1,001,000         0       0  /build/glibc-wuryBv/glibc-2.31/stdlib/random.c:random
+    9,519,527    4    4         4,007           585           1  1,501,509   465,058 125,465  ???:symmetric_random_matrix
+    8,000,007    1    1             1             1           1  8,000,000   125,001 122,036  /build/glibc-wuryBv/glibc-2.31/string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S:__memset_avx2_erms
+

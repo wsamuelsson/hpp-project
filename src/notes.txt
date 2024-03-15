@@ -1,0 +1,1 @@
+LU for N=1000 took 0.5038 seconds (just updates is parallell)

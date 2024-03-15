@@ -17,7 +17,7 @@ void get_L_U(floatType *LU, floatType *L, floatType* U, int N);
 void get_L_U_parallel(floatType *LU, floatType *L, floatType *U, int N);
 void ftgemm(floatType *A, floatType *B, floatType *C, int N);
 void LU_factor_parallel(floatType *A,  int N, int nThreads);
-void transpose_matrix(floatType *A, floatType *AT, int N);
+void inline transpose_matrix(floatType *A, floatType *AT, int N);
 void eye(floatType *A, int N);
 
 int main(int argc,  char**argv){
@@ -40,20 +40,22 @@ int main(int argc,  char**argv){
     memset(&U[0], 0.0, N*N*sizeof(floatType));
 
     
-    symmetric_random_matrix(&A[0], N);
+    random_matrix(&A[0], N);
     memcpy(A_org, A, N*N*sizeof(double));
     //print_matrix(&A[0], N);
     //printf("\n");
     
+    transpose_matrix(&A[0], &A_T[0], N); //Lu factor parallel expects column major matrix
     double t0 = omp_get_wtime();
-    LU_factor_parallel(&A[0], N, nThreads);
+    LU_factor_parallel(&A_T[0], N, nThreads); //Perform on column major matrix
     printf("LU (parallel) for N=%d took %lf seconds\n", N, omp_get_wtime() - t0);
-    transpose_matrix(&A[0], &A_T[0], N);
+    //transpose_matrix(&A_T[0], &A[0], N); //Result is in column major format -> Transpose back to get row major
     get_L_U(&A_T[0], &L[0], &U[0], N);
-    
+    //print_matrix(&A_T[0], N);
+    printf("\n");
 
     memset(&A[0], 0.0, N*N*sizeof(floatType));
-    ftgemm(&L[0], &U[0], &A[0], N);
+    //ftgemm(&L[0], &U[0], &A[0], N);
     
 
     floatType absSum = 0.0;
@@ -67,15 +69,15 @@ int main(int argc,  char**argv){
     memset(&L[0], 0.0, N*N*sizeof(floatType));
     memset(&U[0], 0.0, N*N*sizeof(floatType));
     memcpy(A, A_org, N*N*sizeof(double));
-    
+    #pragma omp flush
     t0 = omp_get_wtime();
     LU_factor(&A[0], N);
     printf("LU (Serial) for N=%d took %lf seconds\n", N, omp_get_wtime() - t0);
-    
+    //print_matrix(&A[0], N);
     get_L_U(&A[0], &L[0], &U[0], N);
     
     memset(&A[0], 0.0, N*N*sizeof(floatType));
-    ftgemm(&L[0], &U[0], &A[0], N);
+    //ftgemm(&L[0], &U[0], &A[0], N);
     
 
     //print_matrix(&A[0], N);
@@ -212,7 +214,8 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
         printf("Dont use this many cores!\n");
         return;
     }
-    int k,i,j;
+    int k,i,j, nlim;
+
     floatType Akk_inv;
     omp_lock_t *locks = (omp_lock_t *)malloc(N * sizeof(omp_lock_t)); //One lock per column
     
@@ -224,7 +227,13 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
     }
     
     int col ,threadID, start, k_temp, row, a;
+    int n_break_point = 1000;
+
+    nlim = N - n_break_point;
+    if(N < n_break_point)
+        nlim = N; 
     
+    double t0 = omp_get_wtime();
     #pragma omp parallel num_threads(nThreads)  private(col, k, start, threadID, Akk_inv, k_temp, row, i, a) 
     {   
         
@@ -235,7 +244,7 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
         for(col=threadID;col<N;col+=nThreads){
             omp_set_lock(&locks[col]);
         }
-        
+                
         #pragma omp barrier
 
         if(threadID == 0){ //Master thread computes
@@ -250,7 +259,7 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
         }
         
         
-        for(k=0;k<N;k++){
+        for(k=0;k<nlim;k++){
             
             omp_set_lock(&locks[k]);
             omp_unset_lock(&locks[k]);
@@ -267,9 +276,7 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
                     A[col*N + row] -= A[k*N+row]*A[N*col+k];
                 }
                 
-
-                
-                if(col == k+1 && col < N){
+                if(col == k+1 && col < nlim){
                     k_temp = k+1;
                     Akk_inv = 1.0/A[k_temp*N + k_temp];
                     
@@ -283,14 +290,42 @@ void LU_factor_parallel(floatType *A,  int N, int nThreads){
                 }
             }
         }
-       
+        
+        
     }
-    
+       
+            
     //Destroy locks
     for(k=0;k<N;k++){
         omp_destroy_lock(&locks[k]);
+        }
+    printf("Parallel LU took %lf seconds\n", omp_get_wtime() - t0);
+    printf("We have now elimated %d columns\n", nlim);
+    floatType *A_T = (floatType *)malloc(sizeof(floatType)*N*N);
+    t0 = omp_get_wtime();
+    transpose_matrix(&A[0], &A_T[0], N);
+    printf("Transpose inside took: %lf\n", omp_get_wtime() - t0);
+
+    t0 = omp_get_wtime();
+    for(k = nlim;k<N;k++){
+        Akk_inv = 1.0/A_T[k*N + k];
+        for(i=k+1;i<N;i++){
+            A_T[i*N + k] *= Akk_inv;
+        }
+        for(i=k+1;i<N;i++){
+            for(j=k+1;j<N;j++){
+                A_T[i*N + j] -= A_T[i*N + k]*A_T[k*N + j];
+            }
     }
+    }
+    printf("Serial took %lf seconds: \n", omp_get_wtime() - t0);
+
     
+    memcpy(&A[0], &A_T[0], N*N*sizeof(floatType));
+    
+    free(A_T);
+    
+        
     free(locks);
     
 }

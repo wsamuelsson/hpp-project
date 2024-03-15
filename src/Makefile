@@ -1,4 +1,4 @@
-WFLAGS=-Wall -Wextra 
+WFLAGS=-Wall -Wextra -pg
 CFLAGS=-fopenmp -O3 -march=native -lm
 
 

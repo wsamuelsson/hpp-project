@@ -1,0 +1,30 @@
+--------------------------------------------------------------------------------
+I1 cache:         32768 B, 64 B, 8-way associative
+D1 cache:         32768 B, 64 B, 8-way associative
+LL cache:         6291456 B, 64 B, 12-way associative
+Command:          ./matrix 1000 8
+Data file:        cachegrind.out.22572
+Events recorded:  Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Events shown:     Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Event sort order: Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Thresholds:       0.1 100 100 100 100 100 100 100 100
+Include dirs:     
+User annotated:   
+Auto-annotation:  off
+
+--------------------------------------------------------------------------------
+Ir             I1mr  ILmr  Dr            D1mr          DLmr        Dw          D1mw      DLmw      
+--------------------------------------------------------------------------------
+14,873,030,122 1,924 1,899 5,106,612,811 2,339,300,491 265,372,488 210,906,170 5,292,546 1,503,933  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir             I1mr ILmr Dr            D1mr          DLmr        Dw         D1mw      DLmw     file:function
+--------------------------------------------------------------------------------
+12,022,014,042    2    2 4,000,000,008 2,251,998,004 250,254,002  2,000,006 2,000,000 250,002  ???:ftgemm
+ 1,677,084,761  238  236   239,971,216        25,026         179      2,199       455      57  ???:???
+   532,392,942   26   26   426,382,869    42,525,201   2,167,907 84,585,256     3,784     202  ???:LU_factor_parallel._omp_fn.0
+   527,422,097   12   12   423,617,442    42,796,374  11,863,943 84,281,753       521       2  ???:LU_factor
+    32,008,168   13   13     5,000,022       625,012     625,012  1,000,045 1,000,004 126,004  ???:main
+    32,000,028    1    1             4             4           4 32,000,000   500,004 497,040  /build/glibc-wuryBv/glibc-2.31/string/../sysdeps/x86_64/multiarch/memset-vec-unaligned-erms.S:__memset_avx2_erms
+    15,951,420    3    3     4,004,000             3           2  1,501,500         0       0  /build/glibc-wuryBv/glibc-2.31/stdlib/random_r.c:random_r
+
